@@ -1,0 +1,24 @@
+node {
+  name: "dnn/logits/bias/part_0"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "J\206d<\223\317\236>\365\035\211\276"
+      }
+    }
+  }
+}
