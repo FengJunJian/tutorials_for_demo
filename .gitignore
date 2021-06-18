@@ -1,0 +1,9 @@
+/tf1/cifar/cifar10-train.tfrecord-00000-of-00001
+/tf2/magenta_arbitrary-image-stylization-v1-256_2.tar.gz
+/resnet50_weights_tf_dim_ordering_tf_kernels.h5
+/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5
+/saved_model.pb
+/vgg16_weights_tf_dim_ordering_tf_kernels.h5
+/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5
+/model16.h5
+/tf1/model.pb
