@@ -7,3 +7,4 @@
 /vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5
 /model16.h5
 /tf1/model.pb
+/tf1/cifar/cifar10-test.tfrecord-00000-of-00001
