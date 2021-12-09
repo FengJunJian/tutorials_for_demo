@@ -1,8 +1,8 @@
-from PIL import Image
+#from PIL import Image
 import cv2
-import os
+#import os
 import numpy as np
-from pytorch.ToONNX import inference
+import onnxruntime
 import time
 #from DatasetClass import ImageNet_className,COCO_className
 
@@ -242,50 +242,59 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     clip_coords(coords, img0_shape)
     return coords
 
+def inference(onnxfilename,input_dict,output_name=None):
+    # model_onnx = onnx.load("alexnet.onnx")
+    # onnx.checker.check_model(model_onnx)
+    # # Print a human readable representation of the graph
+    # print(onnx.helper.printable_graph(model_onnx.graph))
+    if output_name:
+        assert isinstance(output_name,list)
+    session=onnxruntime.InferenceSession(onnxfilename)
+    output=session.run(output_name,input_dict)
+    return output
 
-imgpath='../MVI_1587_VIS_00423.jpg'
-#imgpath='./ultralytics_yolov5_master\data\images/bus.jpg'
-img=cv2.imread(imgpath)
-cv2.imshow('src',img)
-imv=img.copy()
-img=letterbox(img.copy(),(640,640),stride=64,auto=False)[0]
-# img=cv2.resize(img,(640,640),interpolation=cv2.INTER_LINEAR)
-cv2.imshow('resize',img)
-img=np.array(img,dtype=np.float32)
-img=np.transpose(img,(2,0,1))[::-1]
-img/=255
-if len(img.shape) == 3:
-    img = img[None]
-# img=np.expand_dims(img,0)
-w,h=img.shape[2:]
-#im=transforms.ToTensor()(img)
-# input1={"images":np.array(img).astype(np.float32)}#.numpy()
-input1={"images":img}
-output_name=['output']
-filename='./yolov5l.onnx'
-#session=onnxruntime.InferenceSession(filename)
-# print(session.get_inputs()[0].name)
-# print(session.get_outputs()[0].name)
-#output=session.run(output_name,input_dict)
-a=time.time()
-output=inference(filename,input1,output_name=output_name)[0]
-print('time:',time.time()-a,'s')
-# output[...,0]*=w
-# output[...,0]*=h
-# output[...,0]*=w
-# output[...,0]*=h
-classes=None
-agnostic_nms=False
-max_det=1000
-#pred = non_max_suppression(torch.tensor(output), 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
-pred1 = non_max_suppression_py(output, 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
-imt=imv.copy()
-for i, det in enumerate(pred1):
-    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], imt.shape).round()
-    for *xyxy, conf, cls in reversed(det):
-        imt=drawBox(imt, xyxy)
-print('time:',time.time()-a,'s')
-cv2.imshow('draw', imt)
+if __name__ == "__main__":
+
+    imgpath='../MVI_1587_VIS_00423.jpg'
+    #imgpath='./ultralytics_yolov5_master\data\images/bus.jpg'
+    img=cv2.imread(imgpath)
+    cv2.imshow('src',img)
+    imv=img.copy()
+    img=letterbox(img.copy(),(640,640),stride=64,auto=False)[0]
+    # img=cv2.resize(img,(640,640),interpolation=cv2.INTER_LINEAR)
+    cv2.imshow('resize',img)
+    img=np.array(img,dtype=np.float32)
+    img=np.transpose(img,(2,0,1))[::-1]
+    img/=255
+    if len(img.shape) == 3:
+        img = img[None]
+    # img=np.expand_dims(img,0)
+    w,h=img.shape[2:]
+    #im=transforms.ToTensor()(img)
+    # input1={"images":np.array(img).astype(np.float32)}#.numpy()
+    input1={"images":img}
+    output_name=['output']
+    filename='./yolov5l.onnx'
+    #session=onnxruntime.InferenceSession(filename)
+    # print(session.get_inputs()[0].name)
+    # print(session.get_outputs()[0].name)
+    #output=session.run(output_name,input_dict)
+    a=time.time()
+    output=inference(filename,input1,output_name=output_name)[0]
+    print('time:',time.time()-a,'s')
+
+    classes=None
+    agnostic_nms=False
+    max_det=1000
+    #pred = non_max_suppression(torch.tensor(output), 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
+    pred1 = non_max_suppression_py(output, 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
+    imt=imv.copy()
+    for i, det in enumerate(pred1):
+        det[:, :4] = scale_coords(img.shape[2:], det[:, :4], imt.shape).round()
+        for *xyxy, conf, cls in reversed(det):
+            imt=drawBox(imt, xyxy)
+    print('time:',time.time()-a,'s')
+    cv2.imshow('draw', imt)
 #cv2.waitKey()
 # tmp=output[1][0,:,:,:,0]#-output[1][0,:,:,:,0].min()
 # tmp=np.transpose(tmp,(1,2,0))
