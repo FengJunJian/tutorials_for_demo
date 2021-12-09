@@ -262,12 +262,14 @@ w,h=img.shape[2:]
 # input1={"images":np.array(img).astype(np.float32)}#.numpy()
 input1={"images":img}
 output_name=['output']
-filename='./ultralytics_yolov5_master/yolov5m.onnx'
+filename='./yolov5l.onnx'
 #session=onnxruntime.InferenceSession(filename)
 # print(session.get_inputs()[0].name)
 # print(session.get_outputs()[0].name)
 #output=session.run(output_name,input_dict)
+a=time.time()
 output=inference(filename,input1,output_name=output_name)[0]
+print('time:',time.time()-a,'s')
 # output[...,0]*=w
 # output[...,0]*=h
 # output[...,0]*=w
@@ -282,9 +284,9 @@ for i, det in enumerate(pred1):
     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], imt.shape).round()
     for *xyxy, conf, cls in reversed(det):
         imt=drawBox(imt, xyxy)
-
+print('time:',time.time()-a,'s')
 cv2.imshow('draw', imt)
-cv2.waitKey()
+#cv2.waitKey()
 # tmp=output[1][0,:,:,:,0]#-output[1][0,:,:,:,0].min()
 # tmp=np.transpose(tmp,(1,2,0))
 
