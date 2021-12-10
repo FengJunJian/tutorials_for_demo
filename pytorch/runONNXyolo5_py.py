@@ -112,7 +112,7 @@ def non_max_suppression_py(prediction, conf_thres=0.25, iou_thres=0.45, classes=
 
     t = time.time()
     #output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
-    output = [np.zeros((0, 6), dtype=prediction.dtype)] * prediction.shape[0]
+    output = [np.zeros((0, 6), dtype=prediction.dtype)] * prediction.shape[0]#
 
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
@@ -144,7 +144,7 @@ def non_max_suppression_py(prediction, conf_thres=0.25, iou_thres=0.45, classes=
             x = np.concatenate((box[i], x[i, j + 5, None], j[:, None].astype(np.float32)), 1)
         else:  # best class only
             conf = np.max(x[:, 5:], axis=1, keepdims=True)
-            j=np.reshape(np.argmax(x[:, 5:],axis=1),conf.shape)
+            j=np.reshape(np.argmax(x[:, 5:],axis=1),conf.shape)#返回类别
             #conf, j = x[:, 5:].max(1, keepdim=True)
             #x = np.concatenate((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
             x = np.concatenate((box, conf, j.astype(np.float32)), 1)[conf.flatten() > conf_thres]
