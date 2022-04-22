@@ -1,11 +1,14 @@
-#from PIL import Image
+import argparse
 import cv2
 #import os
 import numpy as np
 import onnxruntime
 import time
 #from DatasetClass import ImageNet_className,COCO_className
-
+from DatasetClass import Ship_classNames
+'''
+纯python推理onnx模型
+'''
 
 def py_cpu_nms(dets, thresh):
     """Pure Python NMS baseline."""
@@ -39,18 +42,22 @@ def py_cpu_nms(dets, thresh):
         order = order[inds + 1]
 
     return np.array(keep)
-def drawBox(im,xyxy):
+def drawBox(im,xyxy,color,cls=None):
     box=xyxy
     p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-    return cv2.rectangle(im, p1, p2, (0,0,255), thickness=3, lineType=cv2.LINE_AA)
-    # if label:
-    #     tf = max(self.lw - 1, 1)  # font thickness
-    #     w, h = cv2.getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
-    #     outside = p1[1] - h - 3 >= 0  # label fits outside box
-    #     p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-    #     cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
-    #     cv2.putText(self.im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), 0, self.lw / 3, txt_color,
-    #                 thickness=tf, lineType=cv2.LINE_AA)
+
+    if cls:
+        cls=int(cls)
+        th = 3#max(self.lw - 1, 1)  # font thickness
+
+        w, h = cv2.getTextSize(Ship_classNames[cls], 0, fontScale=th / 3.0, thickness=th-1)[0]  # text width, height
+        outside = p1[1] - h - 3 >= 0  # label fits outside box
+        pp2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+        im=cv2.rectangle(im, p1, pp2, (125,125,125), -1, cv2.LINE_AA)  # filled
+        im=cv2.putText(im, Ship_classNames[cls], (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), cv2.FONT_HERSHEY_SIMPLEX, th / 3.0, [1,1,1],thickness=th-1, lineType=cv2.LINE_AA)#
+    else:
+        cls=0
+    return cv2.rectangle(im, p1, p2, color[cls].tolist(), thickness=3, lineType=cv2.LINE_AA)
 
 def box_iou_py(box1, box2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
@@ -253,10 +260,45 @@ def inference(onnxfilename,input_dict,output_name=None):
     output=session.run(output_name,input_dict)
     return output
 
-if __name__ == "__main__":
+def mainYOLOv5(img,onnxSession,color):
+    #a = time.time()
+    classes = None
+    agnostic_nms = False
+    max_det = 1000
+    imv = img.copy()
+    img = letterbox(img.copy(), (640, 640), stride=64, auto=False)[0]
+    img = np.array(img, dtype=np.float32)
+    img = np.transpose(img, (2, 0, 1))[::-1]
+    img /= 255
+    if len(img.shape) == 3:
+        img = img[None]
 
-    imgpath='../MVI_1587_VIS_00423.jpg'
-    #imgpath='./ultralytics_yolov5_master\data\images/bus.jpg'
+    #w, h = img.shape[2:]
+    input1 = {"images": img}
+    output_name = ['output']
+
+    output = onnxSession.run(output_name, input1)[0]
+
+
+    pred1 = non_max_suppression_py(output, 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
+    det = pred1[0]
+    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], imv.shape).round()
+    #imt = imv.copy()
+    for *xyxy, conf, cls in reversed(det):
+        imv=drawBox(imv, xyxy, color, cls)
+        #imv = drawBox(imv, xyxy,color)
+    # if flagShow:
+    #     cv2.imshow('result', imv)
+    #     cv2.waitKey(1)
+    #b=time.time()
+    #print('detection time:', b - a, 's')
+    return imv,det
+
+
+if __name__ == "__main__":
+    imgpath='../MVI_1592_VIS_00462.jpg'#MVI_1592_VIS_00462
+    filename = './bestl.onnx'
+
     img=cv2.imread(imgpath)
     cv2.imshow('src',img)
     imv=img.copy()
@@ -274,28 +316,24 @@ if __name__ == "__main__":
     # input1={"images":np.array(img).astype(np.float32)}#.numpy()
     input1={"images":img}
     output_name=['output']
-    filename='./yolov5l.onnx'
-    #session=onnxruntime.InferenceSession(filename)
-    # print(session.get_inputs()[0].name)
-    # print(session.get_outputs()[0].name)
-    #output=session.run(output_name,input_dict)
+
     a=time.time()
     output=inference(filename,input1,output_name=output_name)[0]
     print('time:',time.time()-a,'s')
-
     classes=None
     agnostic_nms=False
     max_det=1000
-    #pred = non_max_suppression(torch.tensor(output), 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
     pred1 = non_max_suppression_py(output, 0.25, 0.45, classes, agnostic_nms, max_det=max_det)
     imt=imv.copy()
     for i, det in enumerate(pred1):
         det[:, :4] = scale_coords(img.shape[2:], det[:, :4], imt.shape).round()
         for *xyxy, conf, cls in reversed(det):
-            imt=drawBox(imt, xyxy)
-    print('time:',time.time()-a,'s')
+            imt = drawBox(imt, xyxy)
+
+
     cv2.imshow('draw', imt)
-#cv2.waitKey()
+    cv2.waitKey()
+    #return pred1[0]#(xmin,ymin,xmax,ymax),confident,clsId
 # tmp=output[1][0,:,:,:,0]#-output[1][0,:,:,:,0].min()
 # tmp=np.transpose(tmp,(1,2,0))
 
